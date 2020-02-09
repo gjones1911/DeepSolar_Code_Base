@@ -71,11 +71,350 @@ def calculate_vif (x):
                       index=x.columns)
 
 
-# #####################################################
-# #####################################################
-# #########   TODO: Regression Performance     ########
-# #####################################################
-# #####################################################
+# #############################################################
+# #############################################################
+# ###########    TODO: Classification metrics    ##############
+#                      source: https://en.wikipedia.org/wiki/Sensitivity_and_specificity
+# #############################################################
+# #############################################################
+def class_count(ytrue, val):
+    return len(ytrue[ytrue == val])
+
+def class_prob(ytrue, val):
+    return class_count(ytrue, val)/len(ytrue)
+
+def c_p_handler2(method, param_dict):
+    method(param_dict[0], param_dict[1])
+
+def c_p_handler3(method, param_dict):
+    method(param_dict[0], param_dict[1], param_dict[2])
+
+def c_p_handler4(method, param_dict):
+    method(param_dict[0], param_dict[1], param_dict[2], param_dict[3])
+
+def correct(ytrue, ypredict):
+    if not type_check(ytrue, 'numpy'):
+        ytrue = np.array(ytrue)
+    if not type_check(ypredict, 'numpy'):
+        ypredict = np.array(ypredict)
+    ytrue = ytrue.reshape(len(ytrue), 1)
+    ypredict = ypredict.reshape(len(ypredict), 1)
+    # count the predictions that are correct
+    return sum(yt == yp for yt, yp in zip(ytrue, ypredict))
+
+def shape_check(yc, yd):
+    if yc.shape != yd.shape:
+        yc =  yc.reshape(yd.shape[0], yd.shape[1])
+    return yc
+
+def cnt_false(y):
+    return sum([e[0] == 0 for e in y])
+
+def cnt_true(y):
+    return sum([e == 1 for e in y])
+
+def cnt_val(y, val):
+    return sum([e == val for e in y])
+
+def correct_label(ytrue, ypredict, label):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for labeling of label that are correct
+    # grab every thing that agrees with the truth
+    # and count the number that were correctly labeled label
+    #return ytrue[ytrue == ypredict and ytrue == label].tolist().count(label)
+    return len(ytrue[ytrue == ypredict and ytrue == label])
+
+def true_positives(ytrue, ypredict, label=1):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for a 1 that are correct
+    # grab every thing that agrees with the truth
+    # and count the number that were correctly labeled label
+    tp = sum([yt == yp and yt == 1 for yt, yp in zip(ytrue, ypredict)])
+    return tp[0]
+
+def true_negatives(ytrue, ypredict, label=0):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for label that are correct
+    # grab every thing that agrees with the truth
+    # and count the number that were miss labeled label
+    if type(ytrue) != type(np.array([0])):
+        ytrue = np.array(ytrue)
+    if type(ypredict) != type(np.array([0])):
+        ypredict = np.array(ypredict)
+    """
+    print('--------------------------------------')
+    print('after the conversion to numpy arrays')
+    print('ytrue, size: {}'.format(len(ytrue)))
+    print('ypredict, size: {}'.format(len(ypredict)))
+    print('ytrue, shape: {}'.format(ytrue.shape))
+    print('ypredict, shape: {}'.format(ypredict.shape))
+    print('--------------------------------------')
+    print('--------------------------------------')
+    print('ypredict')
+    print(ypredict)
+    print('ytrue')
+    print(ytrue)
+    print()
+    """
+    ytrue = ytrue.reshape(len(ytrue),1)
+    ypredict = ypredict.reshape(len(ypredict),1)
+    """
+    print('--------------------------------------')
+    print('after the conversion to numpy arrays')
+    print('ytrue, size: {}'.format(len(ytrue)))
+    print('ypredict, size: {}'.format(len(ypredict)))
+    print('ytrue, shape: {}'.format(ytrue.shape))
+    print('ypredict, shape: {}'.format(ypredict.shape))
+    print('--------------------------------------')
+    print('--------------------------------------')
+    print('ypredict')
+    print(ypredict)
+    print('ytrue')
+    print(ytrue)
+    print()
+    """
+    quck = sum([yt==yp for yt, yp in zip(ytrue, ypredict)])
+    #print('correct total: {}'.format(quck))
+    c_z = sum([(yp == yt and yp) == 0 for yp, yt in zip(ypredict, ytrue)])
+    #print('correct by iter', c_z)
+    #print('label',label)
+    #c_z_f = ytrue[ytrue == ypredict and ytrue == label].tolist().count(label)
+    #rint('correct by fancy', c_z_f)
+    return c_z[0]
+
+def incorrect(ytrue, ypredict, timed=False):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for a label that are incorrect
+    # grab every thing that agrees with the truth
+    # and count the number that were correctly labeled label
+    return sum(yt == yp for yt, yp in zip(ytrue, ypredict))[0]
+
+def incorrect_label(ytrue, ypredict, label, timed=False):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for a label that are incorrect
+    # grab every thing that disagrees with the truth
+    # and count the number that were incorrectly labeled label
+    return sum(yt != yp and yp == label for yt, yp in zip(ytrue, ypredict))[0]
+
+def false_positives(ytrue, ypredict, label=1):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for a 1 that are incorrect
+    # grab every thing that disagrees with the truth
+    # and count the number of label that were miss labeled
+    return sum(yt != yp and yp == 1 for yt, yp in zip(ytrue, ypredict))[0]
+
+def false_negatives(ytrue, ypredict, label=0):
+    ypredict = shape_check(ypredict, ytrue)
+    # count the predictions for a 0 that are incorrect
+    # grab every thing that disagrees with the truth
+    # and count the number of label that were miss labeled
+    return sum(yt != yp and yp == 0 for yt, yp in zip(ytrue, ypredict))[0]
+
+def false_others(ytrue, ypredict, label):
+    ypredict = shape_check(ypredict, ytrue)
+    false_others_cnt_dic = {}
+    # get the others
+    # from predicted list
+    other_pred = ypredict[ypredict != label]
+    # from true list
+    other_true = ytrue[ytrue != label]
+    # grab the unique values for the other labels
+    others = set(ypredict[ypredict != label].tolist())
+    for other in others:
+        # how many
+        false_others_cnt_dic[other] = len(other_pred[other_pred == label and other_true == other ])
+    return false_others_cnt_dic
+
+def accuracy(ytrue, ypredict):
+    ypredict = shape_check(ypredict, ytrue)
+    return correct(ytrue, ypredict)/len(ytrue)
+
+def sensitivity(ytrue, ypredict, label=1):
+    ypredict = shape_check(ypredict, ytrue)
+    """ accuracy in predicting positives
+    :param ytrue: the ground truth outcomes
+    :param ypredict: the predicted outcomes
+    :return: #float true positive predictions / the total number of oucomes
+    """
+    tp = true_positives(ytrue, ypredict, label=label)
+    N = cnt_true(ytrue)
+    return tp/max(N, 1e-15)
+
+def specificity(ytrue, ypredict):
+    """ accuracy in predicting negatives
+        :param ytrue: the ground truth outcomes
+        :param ypredict: the predicted outcomes
+        :return: #float true negative predictions / the total number of outcomes
+    """
+    ytrue = np.array(ytrue).reshape(len(ytrue), 1)
+    ypredict = np.array(ypredict).reshape(len(ypredict), 1)
+    tn = true_negatives(ytrue, ypredict, 0)
+    N = cnt_false(ytrue)
+    return max(tn, 1e-15) / max(N, 1e-15)
+
+
+
+def precision(ytrue, ypredict, label=1):
+    """   quality/ability to predict ones correctly (how well it does not call negatives positive
+            :param ytrue: the ground truth outcomes
+            :param ypredict: the predicted outcomes
+            :return: #float true negative predictions / the total number of outcomes
+    """
+    tp = true_positives(ytrue, ypredict, label)
+    fp = false_positives(ytrue, ypredict, label)
+    return tp / max(tp+fp, 1e-15)
+
+def NPV(ytrue, ypredict):
+    """  negative predictive value (NPV) a measure of how well it does not call positivs negative
+            :param ytrue: the ground truth outcomes
+            :param ypredict: the predicted outcomes
+            :return: #float true negative predictions / the total number of outcomes
+    """
+    tn = true_negatives(ytrue, ypredict)
+    fn = false_negatives(ytrue, ypredict)
+    return tn / max(tn+fn, 1e-15)
+
+
+def Gconfusion_matrix(ytrue, ypredict):
+    """ Generates a binary confusion matrix
+    :param ytrue:
+    :param ypredict:
+    :return:
+    """
+    tp = true_positives(ytrue, ypredict)
+    tn = true_negatives(ytrue, ypredict)
+    fp = false_positives(ytrue, ypredict)
+    fn = false_negatives(ytrue, ypredict)
+    cm = [[tn, fp],
+          [fn, tp]]
+    return cm
+
+class ClassificationPerformance:
+    def class_count(self, ytrue, val):
+        return len(ytrue[ytrue == val])
+
+    def class_prob(self, ytrue, val):
+        return class_count(ytrue, val) / len(ytrue)
+
+    def c_p_handler2(self, method, param_dict):
+        method(param_dict[0], param_dict[1])
+
+    def c_p_handler3(self, method, param_dict):
+        method(param_dict[0], param_dict[1], param_dict[2])
+
+    def c_p_handler4(self, method, param_dict):
+        method(param_dict[0], param_dict[1], param_dict[2], param_dict[3])
+
+    def correct(self, ytrue, ypredict):
+        # count the predictions that are correct
+        return len(ytrue[ytrue == ypredict])
+
+    def correct_label(self, ytrue, ypredict, label):
+        # count the predictions for labeling of label that are correct
+        # grab every thing that agrees with the truth
+        # and count the number that were correctly labeled label
+        # return ytrue[ytrue == ypredict and ytrue == label].tolist().count(label)
+        return len(ytrue[ytrue == ypredict and ytrue == label])
+
+    def true_positives(self, ytrue, ypredict, label=1):
+        # count the predictions for a 1 that are correct
+        # grab every thing that agrees with the truth
+        # and count the number that were correctly labeled label
+        return ytrue[ytrue == ypredict].tolist().count(label)
+
+    def true_negatives(self, ytrue, ypredict, label=0):
+        # count the predictions for label that are correct
+        # grab every thing that agrees with the truth
+        # and count the number that were miss labeled label
+        return ytrue[ytrue == ypredict].tolist().count(label)
+
+    def incorrect(self, ytrue, ypredict, timed=False):
+        # count the predictions for a label that are incorrect
+        # grab every thing that agrees with the truth
+        # and count the number that were correctly labeled label
+        return len(ytrue[ytrue != ypredict])
+
+    def incorrect_label(self, ytrue, ypredict, label, timed=False):
+        # count the predictions for a label that are incorrect
+        # grab every thing that disagrees with the truth
+        # and count the number that were incorrectly labeled label
+        return ypredict[ypredict != ytrue].tolist().count(label)
+
+    def false_positives(self, ytrue, ypredict, label=1):
+        # count the predictions for a 1 that are incorrect
+        # grab every thing that disagrees with the truth
+        # and count the number of label that were miss labeled
+        return ypredict[ypredict != ytrue].tolist().count(label)
+
+    def false_negatives(self, ytrue, ypredict, label=0):
+        # count the predictions for a 0 that are incorrect
+        # grab every thing that disagrees with the truth
+        # and count the number of label that were miss labeled
+        return ypredict[ypredict != ytrue].tolist().count(label)
+
+    def false_others(self, ytrue, ypredict, label):
+        false_others_cnt_dic = {}
+        # get the others
+        # from predicted list
+        other_pred = ypredict[ypredict != label]
+        # from true list
+        other_true = ytrue[ytrue != label]
+        # grab the unique values for the other labels
+        others = set(ypredict[ypredict != label].tolist())
+        for other in others:
+            # how many
+            p_o =ypredict[ypredict != ytrue and ypredict == other]
+            t_o = other_pred[other_true == other]
+            false_others_cnt_dic[other] = len()
+        return false_others_cnt_dic
+
+    def accuracy(self, ytrue, ypredict):
+        return correct(ytrue, ypredict) / len(ytrue)
+
+    def sensitivity(self, ytrue, ypredict, label=1):
+        """ accuracy in predicting positives
+        :param ytrue: the ground truth outcomes
+        :param ypredict: the predicted outcomes
+        :return: #float true positive predictions / the total number of oucomes
+        """
+        tp = true_positives(ytrue, ypredict, label=label)
+        N = len(ypredict)
+        return tp / max(N, 1e-15)
+
+    def specificity(self, ytrue, ypredict, label=0):
+        """ accuracy in predicting negatives
+            :param ytrue: the ground truth outcomes
+            :param ypredict: the predicted outcomes
+            :return: #float true negative predictions / the total number of outcomes
+        """
+        tn = true_negatives(ytrue, ypredict, label)
+        N = len(ypredict)
+        return tn / max(N, 1e-15)
+
+    def precision(self, ytrue, ypredict, label=1):
+        """   quality/ability to predict ones correctly (how well it does not call negatives positive
+                :param ytrue: the ground truth outcomes
+                :param ypredict: the predicted outcomes
+                :return: #float true negative predictions / the total number of outcomes
+        """
+        tp = true_positives(ytrue, ypredict, label)
+        fp = false_positives(ytrue, ypredict, label)
+        return tp / max(tp + fp, 1e-15)
+
+    def NPV(self, ytrue, ypredict):
+        """  negative predictive value (NPV) a measure of how well it does not call positivs negative
+                :param ytrue: the ground truth outcomes
+                :param ypredict: the predicted outcomes
+                :return: #float true negative predictions / the total number of outcomes
+        """
+        tn = true_negatives(ytrue, ypredict)
+        fn = false_negatives(ytrue, ypredict)
+        return tn / max(tn + fn, 1e-15)
+
+    def __init(self, yt=None, yp=None):
+        self.yt = yt
+        self.yp = yp
+
 
 
 def find_significant(x,pvals):
@@ -217,7 +556,7 @@ def analyze_data(ysets, xsets, ytest, xtest, type='LinR', normalize=False):
                 print('Cox\'s Snell: {}'.format(cxsn) )
                 print('model 2',dir(model2))
                 print('R squared:', model2.prsquared) # McFadden’s pseudo-R-squared.
-                #print(dir(model2.summary().tables))
+                print(dir(model2.summary().tables))
                 print('The log likelyhoods are:')
                 show_labeled_list(loglikly, x)
                 print('pvalue for {:s}: {:f}'.format(X2.columns.values.tolist()[0], model2.pvalues.loc[x.columns.values.tolist()[0]]))
@@ -253,7 +592,11 @@ def G_Cox_Snell_R2(llnull, llmodel, n):
     print('va, vb', va, vb)
     return 1 - (va/vb)**v
 
-
+# #####################################################
+# #####################################################
+# #########   TODO: Regression Performance     ########
+# #####################################################
+# #####################################################
 def SM_Logit(Training, Testing, verbose=False):
     X = Training[0]
     Y = Training[1]
@@ -416,3 +759,20 @@ def process_cm(cm, verbose=False):
                                                                                               precision,
                                                                                               specificity)
     return dict({'Accuracy': overall_acc, 'Sensitivity': sensitivity,'Precision': precision, 'Specificity': specificity, 'CM': cm})
+
+
+
+
+# ######################################################################################
+# ######################################################################################
+# ##################       TODO: Timing tools               ############################
+# ######################################################################################
+# ######################################################################################
+
+def method_timer(method, param_dict):
+    st = time.time()
+    method(param_dict)
+    exe_time = time.time() - st
+    return exe_time
+
+

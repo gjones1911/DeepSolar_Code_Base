@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 from _products.utility_fnc import *
 from sklearn import metrics
-from _products.performance_metrics import MSE as gmse
+
 
 viz = Visualizer()
 
@@ -1895,190 +1895,10 @@ class Gknn():
         else:
             return euclidean_distance(x, self.X.values[j], np.mean(self.X.values.std(axis=0)))
 
-class Neuron():
-    # source for activation functions
-    # https://towardsdatascience.com/activation-functions-neural-networks-1cbd9f8d91d6
-    """
-        Class object representing a neuron
-    """
-    def __init__(self, input_size, eta=.01, w=None, activation=0, error='mse'):
-        self.input_size = input_size        # number of synaptic connections on dendrites
-        self.eta=eta                        # learning rate
-        self.activation = activation        # the type of activation function to use
-        self.b = np.array([-1], dtype=np.float)                       # bias or threshold to overcome
-        self.error=error
-        # if no initial weights given
-        # then set them to random values of either
-        # -.1 or .1, with input_size elements
-        if w is None:
-            self.w = np.array([np.random.choice([-.1, .1]) for i in range(input_size)])
-        else:
-            self.w = w
-
-    def processInput(self, x, w, b):
-        """
-                Performs summation operation for the neuron and adds bias
-        :param x: inputs signals to sum
-        :param w: weights of the various inputs
-        :param b: bias to overcome
-        :return:   the value of the summation operation on the weighted inputs
-                   with the biase added (xn*wn **** + b)
-        """
-        return np.dot(x, w) + b
-
-    def activation_func(self, x, w, b):
-        """  Performs the activation function calculation selected when neuron
-             was instantiated
-        :param x:  input value numpy array from inputing neurons
-        :param w:  weights on inputs
-        :return:
-        """
-        if self.activation == 0:
-            return self.sigmoid(self.processInput(x,w.transpose(),b))
-        elif self.activation == 1:
-            return self.linear(self.processInput(x, w.transpose(), b))
-        elif self.activation == 2:
-            self.relu(self.processInput(x,w.transpose(),b))
-        elif self.activation == 3:
-            self.tanH(self.processInput(x,w.transpose(),b))
-        elif self.activation == 4:
-            self.relu(self.processInput(x,w.transpose(),b))
-        elif self.activation == 5:
-            self.softplus(self.processInput(x,w.transpose(),b))
-        elif self.activation == 6:
-            self.garctan(self.processInput(x,w.transpose(),b))
-        elif self.activation == 7:
-            self.perceptron(self.processInput(x,w.transpose(),b))
-
-    def activation_funcPrime(self, x, w, b):
-        """  Performs the activation function calculation selected when neuron
-             was instantiated
-        :param x:  input value numpy array from inputing neurons
-        :param w:  weights on inputs
-        :return:
-        """
-        if self.activation == 0:
-            return self.sigmoid_prime(self.processInput(x,w.transpose(),b))
-        elif self.activation == 1:
-            self.linear_prime(self.processInput(x,w.transpose(),b))
-        elif self.activation == 2:
-            self.relu_prim(self.processInput(x, w.transpose(), b))
-        elif self.activation == 3:
-            self.tanH_prime(self.processInput(x,w.transpose(),b))
-        elif self.activation == 4:
-            self.relu_prim(self.processInput(x,w.transpose(),b))
-        elif self.activation == 5:
-            self.softplus_prime(self.processInput(x,w.transpose(),b))
-        elif self.activation == 6:
-            self.arctan_prime(self.processInput(x,w.transpose(),b))
-        elif self.activation == 7:
-            self.perceptron_prime(self.processInput(x,w.transpose(),b))
-
-    def calculate(self, x, w=None, b=None ):
-        if w is None:
-            w = self.w
-        if b is None:
-            b = self.b
-        return self.activation_func(x, w, b)
-
-    def calculate_error(self,yt, yp, error=None):
-        if error is None:
-            error = self.error
-        if error == 'mse':
-            return gmse(yt, yp)
-        elif error == 'entropy':
-            return 1
-
-    def error_func(self, ):
-        pass
-    def process_output1(self, val):
-        if val > 0:
-            return 1
-        return 0
-
-    def adjust_weights(self, delta, lr=None):
-        if lr is None:
-            lr = self.eta
-        return self.w - lr*delta
-
-    def adjust_bias(self, delta, lr=None):
-        if lr is None:
-            lr = self.eta
-        return self.b - lr*delta
-
-    def backpropagate(self, x, y, act_func=None):
-        # set up the arrays for updateing
-        # the weights and biases
-        if act_func is None:
-            act_func = self.activation
-        else:
-            self.activation = act_func
 
 
 
-        pass
 
-    def linear(self, z):
-        return z
-
-    def linear_prime(self, z):
-        return 1
-
-    ### Miscellaneous functions
-    def sigmoid(self, z):
-        """The sigmoid function."""
-        return 1.0 / (1.0 + np.exp(-z))
-
-    def sigmoid_prime(self, z):
-        """Derivative of the sigmoid function."""
-        return self.sigmoid(z) * (1 - self.sigmoid(z))
-
-    def tanH(self, z):
-        """the Tanh activation function"""
-        return (2.0 / (1.0 + np.exp(-2 * z))) - 1
-
-    def tanH_prime(self, z):
-        return 1 - self.tanH(z) ** 2
-
-    def softplus(self, z):
-        return np.log(1 + np.exp(z))
-
-    def softplus_prime(self, z):
-        return 1 / (1 + np.exp(-z))
-
-    def garctan(self, z):
-        return np.arctan(z)
-
-    def arctan_prime(self, z):
-        return 1 / (z ** 2 + 1)
-
-    def perceptron(self, z):
-        """
-            perceptron thresholding function, returns 1 iff
-            z is non negative, otherwise returns 0
-        :param z: input to threshold
-        :return:
-        """
-        if z >= 0:
-            return 1
-        else:
-            return 0
-
-    def perceptron_prime(self, z):
-        if z != 0:
-            return 0
-
-    def relu(self, z):
-        if z < 0:
-            return 0
-        else:
-            return z
-
-    def relu_prim(self, z):
-        if z < 0:
-            return 0
-        else:
-            return 1
 
 class G_NN():
     def __init(self):
@@ -2946,7 +2766,7 @@ def bi_score(g, y, vals, classes='', method='accuracy', verbose=False, train=Fal
 # =========================================================================
 # =========================================================================
 # *** *** *** *** *** ***     can be used to keep records of tests
-class ResultsLog():
+class ResultsLog:
     """
         This class can store different results of ML testing
     """

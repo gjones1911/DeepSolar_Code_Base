@@ -1,6 +1,8 @@
+from __future__ import print_function
 from abc import ABC, abstractmethod
 import sys
 import os
+import string
 import gzip
 import shutil
 import struct
@@ -20,6 +22,15 @@ from sklearn.decomposition import FastICA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import GridSearchCV, StratifiedKFold,cross_val_score, train_test_split
 from sklearn.metrics import roc_curve, precision_recall_curve, auc, make_scorer, recall_score, accuracy_score, precision_score, confusion_matrix
+import sys
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def stderr(msg, sep=' ', msg_num=-99):
+    eprint(msg, sep=sep)
+    quit(msg_num)
+
 
 # =========================================================
 # =========================================================
@@ -60,6 +71,20 @@ def type_check(tocheck, against='dataframe'):
 #         TODO:           Dictionary Methods
 # =========================================================
 # =========================================================
+
+def safe_dict_list_append(dictp, key, initl, next_step, next_p):
+    dict_epoch(dictp, key, initl, next_step=next_step, next_p=next_p)
+    return
+
+def dict_epoch(dictp, key, initl, next_step, next_p):
+    if key not in dictp:
+        dictp[key] = initl
+    next_step(dictp, next_p)
+    return
+
+def dict_list_append(dictp, key_val):
+    dictp[key_val[0]].append(key_val[1])
+    return dictp
 
 def sort_dict(dic, sort_by='vals', reverse=False):
     """
@@ -211,7 +236,7 @@ def data_merger2(data_sets, joins=('fips', 'FIPS', 'geoid'), target=None, verbos
 
 
 
-def percentage_generator(df, part, total):
+def percentage_generator(df, part, total, newvar=None):
     """    will calculate the percentage
            of the total value part is in a list
     :param df:
@@ -219,8 +244,10 @@ def percentage_generator(df, part, total):
     :param total:
     :return:
     """
-    return list(df[part]/df[total])
-
+    if newvar is None:
+        return list(df[part]/df[total])
+    df[newvar] = list(df[part]/df[total])
+    return
 
 def check_cols(col1, col2):
     """
@@ -381,14 +408,18 @@ def generate_excel(dic=None, df=None, name='df_excel2.xlsx', index=False):
         df.to_excel(name, index=index)
     return
 
-def create_combo_var_sum(df, list_to_sum):
-    return df.loc[:, list_to_sum].sum(axis=1).values.tolist()
+def create_combo_var_sum(df, list_to_sum, newvar=None):
+    if newvar is None:
+        return df.loc[:, list_to_sum].sum(axis=1).values.tolist()
+    df[newvar] = df.loc[:, list_to_sum].sum(axis=1).values.tolist()
+    return
 
 def add_renewable_gen(df, val, dictl):
     df['Ren'] = list([0]*len(df))
     for st in dictl:
         df.loc[df[val] == st, 'Ren'] = dictl[st]
-    return df
+    #return df
+    return
 
 def store_var_ranges(df, vars):
     """
@@ -889,7 +920,18 @@ def blocking_sound_player(filename):
     data, fs = sf.read(filename, dtype='float32')
     sd.play(data, fs)
     status = sd.wait()  # Wait until file is done playing
+# =========================================================
+# =========================================================
+#          TODO:       Parrallel and Threading methods
+# =========================================================
+# =========================================================
+def impt_mp():
+    import multiprocessing as mp
+    return mp
 
+def get_pcount():
+    mp = impt_mp()
+    print("Number of processors: ", mp.cpu_count())
 
 # =========================================================
 # =========================================================
@@ -921,3 +963,248 @@ def get_rounded_int_array(dta):
 # generates a gausian random number from the given statistics
 def get_truncated_normal(mean=128, sd=1, low=0, upp=255):
     return truncnorm((low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
+# =========================================================
+# =========================================================
+#          TODO:       GIS methods
+# =========================================================
+# =========================================================
+
+def GIS_fips(old_fips_nums):
+    """
+        This will take a list of fips numbers and append 0's
+        to those that have 10 numbers for easy GIS manipulation
+    :param old_fips_nums:
+    :return:
+    """
+    new_fips_nums = list()
+    for fip in old_fips_nums:
+        if len(str(fip)) == 10:
+            # add a 0 to the front
+            new_fips_nums.append('0' + str(fip))
+        else:
+            new_fips_nums.append(str(fip))
+    return new_fips_nums
+
+
+
+
+
+
+
+# =========================================================
+# =========================================================
+#          TODO:       String manipulation methods
+# =========================================================
+# =========================================================
+Lalpha_b = list(string.ascii_lowercase)
+Ualpha_b = list(string.ascii_uppercase)
+
+# the probability table from the slides detailing
+# the probability of a char appearing in the english language
+english_1gram = pd.read_excel('english_1gram.xlsx')
+n_gramdict = {}
+for char, val in zip(english_1gram['char'].values.tolist(), english_1gram['prob'].values.tolist()):
+    n_gramdict[char] = val
+
+
+
+
+class CeasarCipher:
+    def __init__(self, msg=None, msgcoded=None, key=None):
+        self.msg=msg
+        self.msgcoded=msgcoded
+
+
+
+
+def letter_index(c, chars=None):
+    """
+        returns the index of the given char in the chars array.
+    :param c:
+    :param chars:
+    :return:
+    """
+    if chars is None:
+        if c.isupper():
+            chars = string.ascii_uppercase
+        elif c.islower():
+            chars = string.ascii_lowercase
+    return chars.index(c)
+
+def encode(msg, key, verbose=False):
+    Lalpha_b = list(string.ascii_lowercase)
+    Ualpha_b = list(string.ascii_uppercase)
+    new_msg = ''
+    msg = msg.split(' ')
+    cnt = 0
+    end = len(msg)
+    for word in msg:
+        nword = ''
+        for c in word:
+            idx = letter_index(c.upper(), Ualpha_b)
+            shft = (idx + key) % len(Lalpha_b)
+            replace = Lalpha_b[shft]
+            if verbose:
+                print('the char index is {}'.format(idx))
+                print('the char shifted index  is {}'.format(shft))
+                print('the char is {} the shift is  {} which gets {} in the chars:'.format(c, idx + key % len(
+                    Lalpha_b),
+                                                                                           replace))
+            nword += replace
+        new_msg += nword
+        if cnt < end - 1:
+            new_msg += ' '
+    return new_msg
+
+def get_shifted_alpha(chr, shift):
+    if chr.isupper():
+        return Ualpha_b[(letter_index(chr) + shift)%26]
+    return Lalpha_b[(letter_index(chr) + shift)%26]
+
+
+def dencode(msg, key, verbose=False):
+    Lalpha_b = list(string.ascii_lowercase)
+    Ualpha_b = list(string.ascii_uppercase)
+    new_msg = ''
+    msg = msg.split(' ')
+    cnt = 0
+    end = len(msg)
+    for word in msg:
+        nword=''
+        for c in word:
+            idx = letter_index(c.upper(), Ualpha_b)
+            orig = (idx - key)%len(Lalpha_b)
+            replace = Lalpha_b[orig]
+            if verbose:
+                print('the encoded char index is {}'.format(idx))
+                print('the chars original index  is {}'.format(orig))
+                print('the char is {} the shift is  {} which gets {} in the chars:'.format(c, idx+key%len(Lalpha_b),
+                                                                                           replace))
+            nword += replace
+        new_msg += nword
+        if cnt < end-1:
+            new_msg += ' '
+    return new_msg.upper()
+
+def vectorize_msg(msg):
+    msg = msg.strip().split()
+    for w in range(len(msg)):
+        msg[w] = msg[w].strip()
+    return msg
+
+def check_msg(msg):
+    if  type(msg) == type('') or type(msg) != type(list()):
+            msg = vectorize_msg(msg)
+    return msg
+
+def generate_f(msg, N, verbose=False):
+    """
+        will generate what the class called 'f'
+        which is the probability of each char in msg
+    :param msg:
+    :param verbose:
+    :return:
+    """
+    fdict, rdict = dict(), dict()
+    # msg = msg.strip().split(' ')
+    msg = check_msg(msg)
+    show_list(msg)
+    cnt_dict = msg_char_cnt(msg)
+    print('coung dict')
+    print(cnt_dict)
+    f_prob = msg_char_prob(cnt_dict, N)
+    #print(f_prob)
+    return f_prob
+    for w in range(len(msg)):
+
+        for word in msg:
+            print()
+
+
+def msg_char_prob(cnt_dict, N):
+    prob_dict = dict()
+    for chr in cnt_dict:
+        prob_dict[chr] = cnt_dict[chr]/N
+    return prob_dict
+
+def Msg_char_total(msg_vec):
+    """
+        Can be used to count the number of chars in a given message vector
+    :param msg_vec: a string or a vector of words representing a message
+    :return:
+    """
+
+    if type(msg_vec) == type(''):
+        msg_vec = vectorize_msg(msg_vec)
+
+    if type(msg_vec) != type(list()):
+        stderr('ERROR: {}'.format('msg_vec must be a string or a list of strings'), msg_num=96)
+    return sum([len(w) for w in msg_vec])
+
+def msg_char_cnt(msg):
+    cnt_dict = dict()
+    for word in msg:
+        word_char_cnt(word, cnt_dict)
+    return cnt_dict
+
+def word_char_cnt(word, cnt_dict=None):
+    if cnt_dict is None:
+        cnt_dict = dict()
+    def add_one(dict, key):
+        dict[key] += 1
+        return
+    for char in word:
+        dict_epoch(cnt_dict, char, 0, add_one, char)
+    return
+
+def generate_key_prob(k_d, cnt_dict, ngramdict, k):
+    #print('key: ', k)
+    # ['key_val', 'count_dict_value', 'ngram_dict_value']
+    def sumthem(k_d, ng):
+        #print('key in sumthem 1112: {}'.format(ng[0]))
+        #print('cnt dict val in sumthem : {}'.format(ng[1]))
+        #print('ngram in sumthem: {}'.format(ng[2]))
+        if ng[0] not in k_d:
+            k_d[ng[0]] = 0
+        k_d[ng[0]] += ng[1] * ng[2]
+    for chr in cnt_dict:
+        ngram_idx= get_shifted_alpha(chr, -k).lower()
+        #print('ngram_idx', ngram_idx)
+        dict_epoch(k_d, k, 0, sumthem, [k, cnt_dict[chr], ngramdict[ngram_idx]])
+    k_d = sort_dict(k_d, reverse=True)
+
+# now sum up prob of key and sort by largest pick top four
+def crack_ceasar(encoded_msg, ngram_prb=None, top_num=10):
+    print('Original encoded message: ')
+    print(encoded_msg)
+    print('---------------------------------------------------')
+    NN = Msg_char_total(encoded_msg)
+    msg_cnt_dict = generate_f(encoded_msg, NN)
+    print('there are {} chars in message'.format(NN))
+    print('the mesage dict is:')
+    print(msg_cnt_dict)
+    prob_1 = pd.DataFrame({'letter':list(msg_cnt_dict.keys()),
+                           'Frequency':list(msg_cnt_dict.values())}).to_excel('GTA_HomeWork_Prob1_tableB.xlsx')
+    # store it for the Home work key
+
+    if ngram_prb is None:
+        ngram_prb= n_gramdict
+    key_prob = dict()
+    for key in range(1, 26):
+        # print('key: ', key)
+        #key_prob[key] = generate_key_prob(key_prob, msg_cnt_dict, ngram_prb, key)
+        generate_key_prob(key_prob, msg_cnt_dict, ngram_prb, key)
+        #print(key_prob)
+    key_prob = sort_dict(key_prob, reverse=True)
+    print('prob dict for possible keys:')
+    print(key_prob)
+    top_5pos = list(key_prob.keys())[:top_num]
+    cnt = 0
+    for ans in top_5pos:
+        print('Possible key {}: {}'.format(cnt, ans))
+        print(dencode(encoded_msg, ans))
+        cnt += 1
+    return
+
+
+
